@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>PortView CCTV</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+      color: white;
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Fondo animado con partículas */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(0, 255, 0, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(0, 255, 0, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(0, 255, 0, 0.03) 0%, transparent 50%);
+      animation: float 20s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(180deg); }
+    }
+
+    #monitor {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      padding: 20px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .camera-box {
+      background: rgba(17, 17, 17, 0.4);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 255, 0, 0.3);
+      border-radius: 12px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      width: 340px;
+      cursor: move;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .camera-box:hover {
+      transform: translateY(-5px);
+      border-color: rgba(0, 255, 0, 0.6);
+      box-shadow: 
+        0 16px 64px rgba(0, 0, 0, 0.4),
+        0 0 20px rgba(0, 255, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    .camera-box img {
+      width: 100%;
+      height: auto;
+      background: #000;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 255, 0, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .camera-box:hover img {
+      border-color: rgba(0, 255, 0, 0.4);
+      box-shadow: 0 4px 16px rgba(0, 255, 0, 0.1);
+    }
+
+    .camera-id {
+      font-size: 16px;
+      margin-bottom: 8px;
+      color: #00ff00;
+      font-weight: bold;
+      text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+      letter-spacing: 1px;
+    }
+
+    .fps {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px 8px;
+      border-radius: 6px;
+      margin-top: 8px;
+      border: 1px solid rgba(0, 255, 0, 0.2);
+    }
+
+    .remove-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 0, 0, 0.5);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      font-size: 14px;
+    }
+
+    .remove-btn:hover {
+      background: rgba(255, 0, 0, 1);
+      transform: scale(1.1);
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+    }
+
+    #addCamBtn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 170, 0, 0.8);
+      backdrop-filter: blur(10px);
+      color: white;
+      border: 1px solid rgba(0, 255, 0, 0.5);
+      padding: 12px 16px;
+      font-size: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #addCamBtn:hover {
+      background: rgba(0, 255, 0, 0.9);
+      transform: scale(1.1);
+      box-shadow: 0 0 25px rgba(0, 255, 0, 0.4);
+    }
+
+    #mode {
+      padding: 20px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: #00ff00;
+      text-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+      margin-bottom: 0;
+      position: relative;
+      z-index: 2;
+    }
+
+    #video {
+      display: none;
+      width: 100%;
+      height: 100vh;
+      object-fit: cover;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Efectos de escaneo CCTV */
+    .camera-box::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(0, 255, 0, 0.1) 2%,
+        transparent 4%
+      );
+      animation: scan 3s linear infinite;
+      pointer-events: none;
+      border-radius: 12px;
+    }
+
+    @keyframes scan {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(100vh); }
+    }
+
+    /* Líneas de interferencia */
+    .camera-box img::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 255, 0, 0.03) 2px,
+        rgba(0, 255, 0, 0.03) 4px
+      );
+      pointer-events: none;
+    }
+
+    /* Dragging state */
+    .camera-box.dragging {
+      opacity: 0.5;
+      transform: rotate(5deg);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .camera-box {
+        width: 300px;
+      }
+      
+      #monitor {
+        gap: 15px;
+        padding: 15px;
+      }
+      
+      #mode {
+        font-size: 20px;
+        padding: 15px;
+      }
+    }
+
+    /* Loading animation */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .loading {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <h2 id="mode"></h2>
+
+  <!-- Modo monitor -->
+  <div id="monitor"></div>
+  <button id="addCamBtn" style="display:none;">+</button>
+
+  <!-- Transmisión -->
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCM8XQhDlZcQa9rJj7d7PYggitz7GaQWmA",
+      authDomain: "portview-a0c41.firebaseapp.com",
+      projectId: "portview-a0c41",
+      databaseURL: "https://portview-a0c41-default-rtdb.firebaseio.com",
+      storageBucket: "portview-a0c41.appspot.com",
+      messagingSenderId: "298102117120",
+      appId: "1:298102117120:web:88e314c3f1c884f81819e5"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const params = new URLSearchParams(location.search);
+    const port = params.get("port") || "default";
+    const isRec = params.has("rec");
+    const isView = params.has("view");
+
+    const modeTitle = document.getElementById("mode");
+
+    // ========== MODO EMISOR ==========
+    if (isRec) {
+      modeTitle.innerText = `📤 TRANSMITIENDO - PUERTO ${port}`;
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      video.style.display = "block";
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+
+        const frameRef = ref(db, `stream/${port}`);
+
+        setInterval(() => {
+          if (video.videoWidth === 0) return;
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const frame = canvas.toDataURL("image/jpeg", 0.5);
+          set(frameRef, frame);
+        }, 300);
+      } catch (error) {
+        console.error("Error accessing camera:", error);
+        modeTitle.innerText = "❌ ERROR - No se puede acceder a la cámara";
+      }
+    }
+
+    // ========== MODO MONITOR ==========
+    if (isView) {
+      modeTitle.innerText = "🔴 SISTEMA DE VIGILANCIA ACTIVO";
+      document.getElementById("addCamBtn").style.display = "flex";
+
+      const monitor = document.getElementById("monitor");
+      const addCamBtn = document.getElementById("addCamBtn");
+
+      // Usar variables en memoria en lugar de localStorage
+      let savedPorts = [];
+
+      function createCameraBox(id) {
+        const box = document.createElement("div");
+        box.className = "camera-box";
+        box.setAttribute("draggable", true);
+        box.dataset.id = id;
+
+        box.innerHTML = `
+          <div class="camera-id">CAM_${id}</div>
+          <div class="fps loading" id="fps-${id}">CONECTANDO...</div>
+          <img id="cam-${id}" alt="Cámara ${id}" />
+          <button class="remove-btn" title="Desconectar">×</button>
+        `;
+
+        // FPS y estado de conexión
+        let lastTime = Date.now();
+        let frameCount = 0;
+        const fpsEl = box.querySelector(`#fps-${id}`);
+
+        const img = box.querySelector("img");
+        const refCam = ref(db, `stream/${id}`);
+        
+        let isConnected = false;
+        onValue(refCam, snap => {
+          const frame = snap.val();
+          if (frame) {
+            if (!isConnected) {
+              isConnected = true;
+              fpsEl.classList.remove('loading');
+            }
+            
+            const now = Date.now();
+            frameCount++;
+            
+            if (now - lastTime >= 1000) {
+              const fps = frameCount / ((now - lastTime) / 1000);
+              fpsEl.textContent = `${fps.toFixed(1)} FPS`;
+              frameCount = 0;
+              lastTime = now;
+            }
+            
+            img.src = frame;
+          }
+        });
+
+        // Timeout para detectar desconexión
+        setTimeout(() => {
+          if (!isConnected) {
+            fpsEl.textContent = "SIN SEÑAL";
+            fpsEl.classList.add('loading');
+          }
+        }, 5000);
+
+        // Eliminar cámara
+        box.querySelector(".remove-btn").onclick = (e) => {
+          e.stopPropagation();
+          box.style.transform = "scale(0)";
+          setTimeout(() => {
+            box.remove();
+            savedPorts = savedPorts.filter(p => p !== id);
+          }, 300);
+        };
+
+        // Drag events
+        box.addEventListener("dragstart", (e) => {
+          box.classList.add("dragging");
+          e.dataTransfer.effectAllowed = "move";
+        });
+
+        box.addEventListener("dragend", () => {
+          box.classList.remove("dragging");
+        });
+
+        monitor.appendChild(box);
+      }
+
+      // Añadir cámara
+      function addCam(id) {
+        if (!savedPorts.includes(id)) {
+          savedPorts.push(id);
+        }
+        createCameraBox(id);
+      }
+
+      // Botón '+'
+      addCamBtn.onclick = () => {
+        const id = prompt("Puerto de la cámara:");
+        if (id && id.trim()) {
+          addCam(id.trim());
+        }
+      };
+
+      // Drag & Drop mejorado
+      let draggedElement = null;
+
+      monitor.addEventListener("dragstart", e => {
+        draggedElement = e.target.closest(".camera-box");
+      });
+
+      monitor.addEventListener("dragover", e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+      });
+
+      monitor.addEventListener("drop", e => {
+        e.preventDefault();
+        if (draggedElement && e.target.closest(".camera-box")) {
+          const targetBox = e.target.closest(".camera-box");
+          if (targetBox !== draggedElement) {
+            monitor.insertBefore(draggedElement, targetBox);
+            
+            // Actualizar orden en memoria
+            const ids = [...monitor.querySelectorAll(".camera-box")].map(box => box.dataset.id);
+            savedPorts = ids;
+          }
+        }
+        draggedElement = null;
+      });
+
+      // Agregar una cámara de ejemplo si no hay ninguna
+      if (savedPorts.length === 0) {
+        setTimeout(() => {
+          const showExample = confirm("¿Deseas agregar una cámara de ejemplo?");
+          if (showExample) {
+            addCam("demo");
+          }
+        }, 1000);
+      }
+    }
+
+    // Efectos de sonido (opcional)
+    function playSound(frequency, duration) {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = frequency;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + duration);
+    }
+
+    // Sonido al agregar cámara
+    document.addEventListener('click', (e) => {
+      if (e.target.id === 'addCamBtn') {
+        playSound(800, 0.1);
+      }
+    });
+  </script>
+</body>
+</html>
