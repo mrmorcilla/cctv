@@ -4,28 +4,20 @@
   <meta charset="UTF-8" />
   <title>PortView CCTV</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; }
     body {
       margin: 0;
       background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
       color: white;
       font-family: 'Courier New', monospace;
       min-height: 100vh;
-      position: relative;
-      overflow: hidden;
+      overflow-x: hidden;
     }
-
-    /* Fondo animado con partículas */
     body::before {
       content: '';
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       background: 
         radial-gradient(circle at 20% 80%, rgba(0, 255, 0, 0.1) 0%, transparent 50%),
         radial-gradient(circle at 80% 20%, rgba(0, 255, 0, 0.05) 0%, transparent 50%),
@@ -34,455 +26,134 @@
       pointer-events: none;
       z-index: 1;
     }
-
     @keyframes float {
       0%, 100% { transform: translateY(0px) rotate(0deg); }
       50% { transform: translateY(-20px) rotate(180deg); }
     }
-
-    /* Layout principal para modo monitor */
-    .monitor-container {
-      display: flex;
-      height: 100vh;
-      position: relative;
-      z-index: 2;
-    }
-
-    .cameras-grid {
-      flex: 1;
-      display: grid;
-      gap: 2px;
-      padding: 2px;
-      background: rgba(0, 0, 0, 0.2);
-      overflow: hidden;
-    }
-
-    /* Grid dinámico basado en número de cámaras */
-    .cameras-grid.count-1 { grid-template-columns: 1fr; }
-    .cameras-grid.count-2 { grid-template-columns: 1fr 1fr; }
-    .cameras-grid.count-3 { grid-template-columns: 1fr 1fr 1fr; }
-    .cameras-grid.count-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
-    .cameras-grid.count-5, .cameras-grid.count-6 { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; }
-    .cameras-grid.count-7, .cameras-grid.count-8, .cameras-grid.count-9 { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
-
-    /* Responsive para pantallas pequeñas */
-    @media (max-width: 768px) {
-      .cameras-grid.count-2 { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
-      .cameras-grid.count-3 { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr 1fr; }
-      .cameras-grid.count-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
-    }
-
-    .camera-box {
-      background: rgba(17, 17, 17, 0.9);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(0, 255, 0, 0.3);
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      cursor: move;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      min-height: 200px;
-      overflow: hidden;
-    }
-
-    .camera-box:hover {
-      border-color: rgba(0, 255, 0, 0.6);
-      box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
-    }
-
-    .camera-box img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      background: #000;
-      border: none;
-      flex: 1;
-    }
-
-    .camera-header {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: rgba(0, 0, 0, 0.8);
-      padding: 8px 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 10;
-    }
-
-    .camera-id {
-      font-size: 12px;
-      color: #00ff00;
-      font-weight: bold;
-      text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-      letter-spacing: 1px;
-    }
-
-    .fps {
-      font-size: 10px;
-      color: rgba(255, 255, 255, 0.7);
-      background: rgba(0, 0, 0, 0.5);
-      padding: 2px 6px;
-      border-radius: 4px;
-      border: 1px solid rgba(0, 255, 0, 0.2);
-    }
-
-    .remove-btn {
-      background: rgba(255, 0, 0, 0.8);
-      border: 1px solid rgba(255, 0, 0, 0.5);
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      border-radius: 50%;
-      width: 20px;
-      height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s ease;
-      font-size: 12px;
-    }
-
-    .remove-btn:hover {
-      background: rgba(255, 0, 0, 1);
-      transform: scale(1.1);
-    }
-
-    /* Chat sidebar */
-    .chat-sidebar {
-      width: 300px;
-      background: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(10px);
-      border-left: 1px solid rgba(0, 255, 0, 0.3);
-      display: flex;
-      flex-direction: column;
-      transition: transform 0.3s ease;
-    }
-
-    .chat-sidebar.hidden {
-      transform: translateX(100%);
-    }
-
-    .chat-header {
-      padding: 15px;
-      background: rgba(0, 255, 0, 0.1);
-      border-bottom: 1px solid rgba(0, 255, 0, 0.3);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px;
-      max-height: calc(100vh - 200px);
-    }
-
-    .message {
-      margin-bottom: 10px;
-      padding: 8px 12px;
-      background: rgba(0, 255, 0, 0.1);
-      border-radius: 8px;
-      border-left: 3px solid rgba(0, 255, 0, 0.5);
-      font-size: 12px;
-    }
-
-    .message.own {
-      background: rgba(0, 100, 255, 0.1);
-      border-left-color: rgba(0, 100, 255, 0.5);
-      margin-left: 20px;
-    }
-
-    .message-time {
-      font-size: 10px;
-      color: rgba(255, 255, 255, 0.5);
-      margin-bottom: 3px;
-    }
-
-    .chat-input {
-      padding: 15px;
-      border-top: 1px solid rgba(0, 255, 0, 0.3);
-      display: flex;
-      gap: 10px;
-    }
-
-    .chat-input input {
-      flex: 1;
-      background: rgba(0, 0, 0, 0.5);
-      border: 1px solid rgba(0, 255, 0, 0.3);
-      color: white;
-      padding: 8px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      outline: none;
-    }
-
-    .chat-input input:focus {
-      border-color: rgba(0, 255, 0, 0.6);
-    }
-
-    .chat-input button {
-      background: rgba(0, 255, 0, 0.8);
-      border: none;
-      color: white;
-      padding: 8px 15px;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 12px;
-      transition: all 0.3s ease;
-    }
-
-    .chat-input button:hover {
-      background: rgba(0, 255, 0, 1);
-      transform: scale(1.05);
-    }
-
-    /* Audio controls */
-    .audio-controls {
-      padding: 10px 15px;
-      background: rgba(0, 0, 0, 0.5);
-      border-bottom: 1px solid rgba(0, 255, 0, 0.3);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .audio-btn {
-      background: rgba(255, 100, 0, 0.8);
-      border: 1px solid rgba(255, 100, 0, 0.5);
-      color: white;
-      padding: 6px 12px;
-      border-radius: 15px;
-      cursor: pointer;
-      font-size: 11px;
-      transition: all 0.3s ease;
-    }
-
-    .audio-btn.active {
-      background: rgba(0, 255, 0, 0.8);
-      border-color: rgba(0, 255, 0, 0.5);
-    }
-
-    .audio-btn:hover {
-      transform: scale(1.05);
-    }
-
-    /* Controles principales */
-    .top-controls {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      right: 320px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 100;
-      pointer-events: none;
-    }
-
-    .top-controls > * {
-      pointer-events: all;
-    }
-
-    .control-btn {
-      background: rgba(0, 170, 0, 0.8);
-      backdrop-filter: blur(10px);
-      color: white;
-      border: 1px solid rgba(0, 255, 0, 0.5);
-      padding: 10px 15px;
-      border-radius: 25px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .control-btn:hover {
-      background: rgba(0, 255, 0, 0.9);
-      transform: scale(1.05);
-    }
-
-    .toggle-chat-btn {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 101;
-    }
-
-    /* Modo emisor */
-    .transmitter-container {
-      position: relative;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    #video {
-      flex: 1;
-      width: 100%;
-      object-fit: cover;
-    }
-
-    .transmitter-controls {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      display: flex;
-      gap: 10px;
-      z-index: 10;
-    }
-
-    .camera-indicator {
-      position: absolute;
-      top: 80px;
-      right: 20px;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(10px);
-      color: white;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      border: 1px solid rgba(0, 255, 0, 0.3);
-      z-index: 10;
-    }
-
     #mode {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      padding: 15px;
+      padding: 20px;
       text-align: center;
-      font-size: 18px;
+      font-size: 24px;
       font-weight: bold;
       color: #00ff00;
       text-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.3);
       backdrop-filter: blur(10px);
       border-bottom: 1px solid rgba(0, 255, 0, 0.3);
-      z-index: 10;
+      margin-bottom: 0;
+      z-index: 2;
     }
-
-    /* Efectos de escaneo CCTV */
-    .camera-box::after {
-      content: '';
+    #monitor {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      padding: 20px;
+      z-index: 2;
+    }
+    .camera-box {
+      background: rgba(17, 17, 17, 0.4);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 255, 0, 0.3);
+      border-radius: 12px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      width: 340px;
+      cursor: move;
+      transition: all 0.3s ease;
+    }
+    .camera-box img {
+      width: 100%;
+      background: black;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 255, 0, 0.2);
+    }
+    .camera-id {
+      font-size: 16px;
+      margin-bottom: 8px;
+      color: #00ff00;
+      font-weight: bold;
+      text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    }
+    .fps {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px 8px;
+      border-radius: 6px;
+      margin-top: 8px;
+      border: 1px solid rgba(0, 255, 0, 0.2);
+    }
+    .remove-btn {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(
-        to bottom,
-        transparent 0%,
-        rgba(0, 255, 0, 0.1) 2%,
-        transparent 4%
-      );
-      animation: scan 3s linear infinite;
-      pointer-events: none;
+      top: 10px; right: 10px;
+      background: rgba(255, 0, 0, 0.8);
+      border: 1px solid rgba(255, 0, 0, 0.5);
+      color: white;
+      cursor: pointer;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
     }
-
-    @keyframes scan {
-      0% { transform: translateY(-100%); }
-      100% { transform: translateY(100%); }
+    #addCamBtn {
+      position: fixed;
+      top: 20px; left: 20px;
+      background: rgba(0, 170, 0, 0.8);
+      border: 1px solid rgba(0, 255, 0, 0.5);
+      color: white;
+      font-size: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 10;
+      width: 50px; height: 50px;
     }
-
-    /* Dragging state */
-    .camera-box.dragging {
-      opacity: 0.5;
-      transform: scale(0.95);
+    #switchCamBtn, #toggleAudioBtn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 100, 255, 0.8);
+      border: 1px solid rgba(0, 150, 255, 0.5);
+      color: white;
+      font-size: 14px;
+      border-radius: 25px;
+      cursor: pointer;
+      z-index: 10;
+      padding: 10px;
     }
-
-    /* Loading animation */
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-
-    .loading {
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .chat-sidebar {
-        width: 100%;
-        position: fixed;
-        top: 0;
-        right: 0;
-        z-index: 1000;
-      }
-      
-      .top-controls {
-        right: 20px;
-        flex-direction: column;
-        gap: 10px;
-      }
-      
-      .monitor-container {
-        flex-direction: column;
-      }
-    }
-
-    /* Ocultar elementos por defecto */
-    .hidden {
-      display: none !important;
+    #video {
+      display: none;
+      width: 100%;
+      height: 100vh;
+      object-fit: cover;
+      position: relative;
+      z-index: 2;
     }
   </style>
 </head>
 <body>
   <h2 id="mode"></h2>
-
-  <!-- Modo monitor -->
-  <div class="monitor-container hidden" id="monitorContainer">
-    <div class="cameras-grid" id="camerasGrid"></div>
-    <div class="chat-sidebar" id="chatSidebar">
-      <div class="chat-header">
-        <span>💬 Chat en vivo</span>
-        <button class="remove-btn" id="closeChatBtn">×</button>
-      </div>
-      <div class="audio-controls">
-        <button class="audio-btn" id="micBtn">🎤 Micrófono</button>
-        <button class="audio-btn" id="speakerBtn">🔊 Altavoz</button>
-      </div>
-      <div class="chat-messages" id="chatMessages"></div>
-      <div class="chat-input">
-        <input type="text" id="messageInput" placeholder="Escribe un mensaje...">
-        <button id="sendBtn">Enviar</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="top-controls hidden" id="topControls">
-    <button class="control-btn" id="addCamBtn">📹 Agregar Cámara</button>
-    <button class="control-btn toggle-chat-btn" id="toggleChatBtn">💬 Chat</button>
-  </div>
-
-  <!-- Modo emisor -->
-  <div class="transmitter-container hidden" id="transmitterContainer">
-    <video id="video" autoplay playsinline muted></video>
-    <div class="transmitter-controls">
-      <button class="control-btn" id="switchCamBtn">📷 Cambiar Cámara</button>
-      <button class="control-btn" id="toggleAudioBtn">🎤 Audio</button>
-    </div>
-    <div class="camera-indicator" id="cameraIndicator"></div>
-  </div>
-
+  <div id="monitor"></div>
+  <video id="video" autoplay playsinline muted></video>
   <canvas id="canvas" style="display:none;"></canvas>
+  <button id="addCamBtn" style="display:none;">+</button>
+  <button id="switchCamBtn" style="display:none;">📷 Cambiar Cámara</button>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, push } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCM8XQhDlZcQa9rJj7d7PYggitz7GaQWmA",
       authDomain: "portview-a0c41.firebaseapp.com",
-      projectId: "portview-a0c41",
       databaseURL: "https://portview-a0c41-default-rtdb.firebaseio.com",
+      projectId: "portview-a0c41",
       storageBucket: "portview-a0c41.appspot.com",
       messagingSenderId: "298102117120",
       appId: "1:298102117120:web:88e314c3f1c884f81819e5"
@@ -496,362 +167,154 @@
     const isRec = params.has("rec");
     const isView = params.has("view");
 
-    const modeTitle = document.getElementById("mode");
-    
-    // Sistema de chat
-    class ChatSystem {
-      constructor() {
-        this.messagesRef = ref(db, 'chat/messages');
-        this.audioRef = ref(db, 'chat/audio');
-        this.userId = 'user_' + Math.random().toString(36).substr(2, 9);
-        this.isRecording = false;
-        this.mediaRecorder = null;
-        this.audioChunks = [];
-        
-        this.initializeChat();
-        this.initializeAudio();
-      }
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
 
-      initializeChat() {
-        const messageInput = document.getElementById('messageInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const chatMessages = document.getElementById('chatMessages');
+    const mode = document.getElementById("mode");
+    if (isRec) mode.textContent = `📤 Transmitiendo - Puerto ${port}`;
+    if (isView) mode.textContent = `🔴 Modo Monitor`;
 
-        // Enviar mensaje
-        const sendMessage = () => {
-          const message = messageInput.value.trim();
-          if (message) {
-            push(this.messagesRef, {
-              text: message,
-              userId: this.userId,
-              timestamp: Date.now()
-            });
-            messageInput.value = '';
-          }
-        };
-
-        sendBtn.addEventListener('click', sendMessage);
-        messageInput.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') sendMessage();
-        });
-
-        // Escuchar mensajes
-        onValue(this.messagesRef, (snapshot) => {
-          const messages = snapshot.val();
-          if (messages) {
-            chatMessages.innerHTML = '';
-            Object.values(messages).slice(-50).forEach(msg => {
-              const messageEl = document.createElement('div');
-              messageEl.className = `message ${msg.userId === this.userId ? 'own' : ''}`;
-              messageEl.innerHTML = `
-                <div class="message-time">${new Date(msg.timestamp).toLocaleTimeString()}</div>
-                <div>${msg.text}</div>
-              `;
-              chatMessages.appendChild(messageEl);
-            });
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-          }
-        });
-      }
-
-      async initializeAudio() {
-        const micBtn = document.getElementById('micBtn');
-        const speakerBtn = document.getElementById('speakerBtn');
-        
-        try {
-          // Inicializar micrófono
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          this.mediaRecorder = new MediaRecorder(stream);
-          
-          this.mediaRecorder.ondataavailable = (event) => {
-            this.audioChunks.push(event.data);
-          };
-
-          this.mediaRecorder.onstop = () => {
-            const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
-            const reader = new FileReader();
-            reader.onload = () => {
-              set(ref(db, `chat/audio/${this.userId}_${Date.now()}`), {
-                data: reader.result,
-                timestamp: Date.now()
-              });
-            };
-            reader.readAsDataURL(audioBlob);
-            this.audioChunks = [];
-          };
-
-          micBtn.addEventListener('click', () => {
-            if (!this.isRecording) {
-              this.mediaRecorder.start();
-              this.isRecording = true;
-              micBtn.textContent = '🔴 Grabando';
-              micBtn.classList.add('active');
-            } else {
-              this.mediaRecorder.stop();
-              this.isRecording = false;
-              micBtn.textContent = '🎤 Micrófono';
-              micBtn.classList.remove('active');
-            }
-          });
-
-          // Reproducir audio recibido
-          onValue(this.audioRef, (snapshot) => {
-            const audioData = snapshot.val();
-            if (audioData) {
-              Object.values(audioData).forEach(audio => {
-                if (audio.timestamp > (this.lastAudioTime || 0)) {
-                  const audioElement = new Audio(audio.data);
-                  audioElement.play();
-                  this.lastAudioTime = audio.timestamp;
-                }
-              });
-            }
-          });
-
-        } catch (error) {
-          console.error('Error inicializando audio:', error);
-          micBtn.textContent = '❌ Sin micrófono';
-          micBtn.disabled = true;
-        }
-      }
-    }
-
-    // ========== MODO EMISOR ==========
+    // === EMISOR ===
     if (isRec) {
-      modeTitle.innerText = `📤 TRANSMITIENDO - PUERTO ${port}`;
-      document.getElementById('transmitterContainer').classList.remove('hidden');
-      
-      const video = document.getElementById("video");
-      const canvas = document.getElementById("canvas");
-      const switchCamBtn = document.getElementById("switchCamBtn");
-      const toggleAudioBtn = document.getElementById("toggleAudioBtn");
-      const cameraIndicator = document.getElementById("cameraIndicator");
-      const ctx = canvas.getContext("2d");
+      let currentStream;
+      let audioEnabled = false;
+      const switchBtn = document.getElementById("switchCamBtn");
+      const toggleAudio = document.createElement("button");
+      toggleAudio.id = "toggleAudioBtn";
+      toggleAudio.textContent = "🔇 Audio";
+      toggleAudio.style.top = '60px';
+      document.body.appendChild(toggleAudio);
+      switchBtn.style.display = 'block';
 
-      let currentStream = null;
+      toggleAudio.onclick = async () => {
+        audioEnabled = !audioEnabled;
+        toggleAudio.textContent = audioEnabled ? "🎙️ Audio" : "🔇 Audio";
+        await initCamera();
+      };
+
       let devices = [];
-      let currentDeviceIndex = 0;
-      let audioStream = null;
-      let isAudioEnabled = false;
+      let currentIndex = 0;
 
-      // Obtener dispositivos
-      async function getVideoDevices() {
-        try {
-          const deviceList = await navigator.mediaDevices.enumerateDevices();
-          devices = deviceList.filter(device => device.kind === 'videoinput');
-          return devices;
-        } catch (error) {
-          console.error("Error obteniendo dispositivos:", error);
-          return [];
-        }
+      async function getDevices() {
+        const list = await navigator.mediaDevices.enumerateDevices();
+        devices = list.filter(d => d.kind === 'videoinput');
       }
 
-      // Inicializar cámara
-      async function initCamera(deviceId = null) {
-        try {
-          if (currentStream) {
-            currentStream.getTracks().forEach(track => track.stop());
-          }
+      async function initCamera() {
+        if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+        const deviceId = devices[currentIndex]?.deviceId;
+        const constraints = {
+          video: deviceId ? { deviceId: { exact: deviceId } } : true,
+          audio: audioEnabled
+        };
+        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = currentStream;
+      }
 
-          const constraints = {
-            video: {
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-              frameRate: { ideal: 30 },
-              ...(deviceId && { deviceId: { exact: deviceId } })
-            },
-            audio: isAudioEnabled
+      switchBtn.onclick = async () => {
+        currentIndex = (currentIndex + 1) % devices.length;
+        await initCamera();
+      };
+
+      await getDevices();
+      await initCamera();
+
+      const frameRef = ref(db, `stream/${port}`);
+      setInterval(() => {
+        if (!video.videoWidth) return;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        const frame = canvas.toDataURL("image/webp", 0.3);
+        set(frameRef, frame);
+      }, 100);
+
+      // Grabador de audio
+      let micStream = null;
+      let recorder = null;
+      setInterval(async () => {
+        if (!audioEnabled) return;
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recorder = new MediaRecorder(micStream);
+        let chunks = [];
+        recorder.ondataavailable = e => chunks.push(e.data);
+        recorder.onstop = () => {
+          const blob = new Blob(chunks);
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            set(ref(db, `audio/${port}`), reader.result);
           };
-
-          currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-          video.srcObject = currentStream;
-
-          const currentDevice = devices[currentDeviceIndex];
-          cameraIndicator.textContent = `📷 ${currentDevice?.label || 'Cámara ' + (currentDeviceIndex + 1)}`;
-
-          return true;
-        } catch (error) {
-          console.error("Error accediendo a cámara:", error);
-          modeTitle.innerText = "❌ ERROR - No se puede acceder a la cámara";
-          return false;
-        }
-      }
-
-      // Cambiar cámara
-      switchCamBtn.addEventListener('click', async () => {
-        if (devices.length > 1) {
-          currentDeviceIndex = (currentDeviceIndex + 1) % devices.length;
-          const deviceId = devices[currentDeviceIndex].deviceId;
-          await initCamera(deviceId);
-          playSound(600, 0.1);
-        }
-      });
-
-      // Toggle audio
-      toggleAudioBtn.addEventListener('click', async () => {
-        isAudioEnabled = !isAudioEnabled;
-        await initCamera(devices[currentDeviceIndex]?.deviceId);
-        toggleAudioBtn.textContent = isAudioEnabled ? '🔇 Silenciar' : '🎤 Audio';
-        toggleAudioBtn.classList.toggle('active', isAudioEnabled);
-      });
-
-      // Inicializar
-      try {
-        await getVideoDevices();
-        const initialized = await initCamera();
-        
-        if (initialized) {
-          const frameRef = ref(db, `stream/${port}`);
-          const audioRef = ref(db, `stream/${port}/audio`);
-
-          // Transmitir video
-          setInterval(() => {
-            if (video.videoWidth === 0) return;
-            
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            let frame;
-            try {
-              frame = canvas.toDataURL("image/webp", 0.4);
-            } catch (error) {
-              frame = canvas.toDataURL("image/jpeg", 0.4);
-            }
-            
-            set(frameRef, {
-              frame: frame,
-              timestamp: Date.now()
-            });
-          }, 80); // ~12 FPS
-
-          // Transmitir audio si está habilitado
-          if (isAudioEnabled) {
-            // Implementar transmisión de audio
-            const audioContext = new AudioContext();
-            const source = audioContext.createMediaStreamSource(currentStream);
-            const analyser = audioContext.createAnalyser();
-            source.connect(analyser);
-            
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            
-            setInterval(() => {
-              analyser.getByteFrequencyData(dataArray);
-              const average = dataArray.reduce((a, b) => a + b) / bufferLength;
-              set(audioRef, {
-                level: average,
-                timestamp: Date.now()
-              });
-            }, 100);
-          }
-        }
-      } catch (error) {
-        console.error("Error inicializando:", error);
-        modeTitle.innerText = "❌ ERROR - No se puede inicializar";
-      }
+          reader.readAsDataURL(blob);
+        };
+        recorder.start();
+        setTimeout(() => recorder.stop(), 3000);
+      }, 5000);
     }
 
-    // ========== MODO MONITOR ==========
+    // === MONITOR ===
     if (isView) {
-      modeTitle.innerText = "🔴 SISTEMA DE VIGILANCIA ACTIVO";
-      document.getElementById('monitorContainer').classList.remove('hidden');
-      document.getElementById('topControls').classList.remove('hidden');
-
-      const camerasGrid = document.getElementById("camerasGrid");
+      const monitor = document.getElementById("monitor");
       const addCamBtn = document.getElementById("addCamBtn");
-      const toggleChatBtn = document.getElementById("toggleChatBtn");
-      const chatSidebar = document.getElementById("chatSidebar");
-      const closeChatBtn = document.getElementById("closeChatBtn");
+      addCamBtn.style.display = 'block';
+      addCamBtn.onclick = () => {
+        const id = prompt("Puerto de la cámara:");
+        if (id) addCam(id);
+      };
 
-      let savedPorts = [];
-      let chatSystem = new ChatSystem();
-
-      // Controles del chat
-      toggleChatBtn.addEventListener('click', () => {
-        chatSidebar.classList.toggle('hidden');
-      });
-
-      closeChatBtn.addEventListener('click', () => {
-        chatSidebar.classList.add('hidden');
-      });
-
-      // Actualizar layout del grid
-      function updateGridLayout() {
-        const count = savedPorts.length;
-        camerasGrid.className = `cameras-grid count-${count}`;
-      }
-
-      function createCameraBox(id) {
+      function addCam(id) {
         const box = document.createElement("div");
         box.className = "camera-box";
-        box.setAttribute("draggable", true);
-        box.dataset.id = id;
-
         box.innerHTML = `
-          <div class="camera-header">
-            <div class="camera-id">CAM_${id}</div>
-            <div class="fps loading" id="fps-${id}">CONECTANDO...</div>
-            <button class="remove-btn" title="Desconectar">×</button>
-          </div>
-          <img id="cam-${id}" alt="Cámara ${id}" />
+          <div class="camera-id">CAM_${id}</div>
+          <div class="fps">CONECTANDO...</div>
+          <img id="cam-${id}" />
+          <button class="remove-btn">×</button>
         `;
+        monitor.appendChild(box);
 
-        let lastTime = Date.now();
-        let frameCount = 0;
-        let lastFrameTime = 0;
-        const fpsEl = box.querySelector(`#fps-${id}`);
+        // Cargar frames
         const img = box.querySelector("img");
         const refCam = ref(db, `stream/${id}`);
-        
-        let isConnected = false;
-        let connectionTimeout;
-        
         onValue(refCam, snap => {
-          const data = snap.val();
-          if (data && data.frame) {
-            const now = Date.now();
-            
-            if (data.frame !== img.src) {
-              if (!isConnected) {
-                isConnected = true;
-                fpsEl.classList.remove('loading');
-                clearTimeout(connectionTimeout);
-              }
-              
-              frameCount++;
-              lastFrameTime = now;
-              
-              if (now - lastTime >= 1000) {
-                const fps = frameCount / ((now - lastTime) / 1000);
-                fpsEl.textContent = `${fps.toFixed(1)} FPS`;
-                frameCount = 0;
-                lastTime = now;
-              }
-              
-              img.src = data.frame;
-            }
-          }
+          img.src = snap.val();
         });
 
-        connectionTimeout = setTimeout(() => {
-          if (!isConnected) {
-            fpsEl.textContent = "SIN SEÑAL";
-            fpsEl.classList.add('loading');
-          }
-        }, 3000);
-
-        // Eliminar cámara
-        box.querySelector(".remove-btn").onclick = (e) => {
-          e.stopPropagation();
-          box.style.transform = "scale(0)";
-          setTimeout(() => {
-            box.remove();
-            savedPorts = savedPorts.filter(p => p !== id);
-            updateGridLayout();
-          }, 300);
+        // Hablar
+        const speakBtn = document.createElement("button");
+        speakBtn.textContent = "🎤 Hablar";
+        let mic;
+        speakBtn.onmousedown = async () => {
+          mic = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const rec = new MediaRecorder(mic);
+          const chunks = [];
+          rec.ondataavailable = e => chunks.push(e.data);
+          rec.onstop = () => {
+            const blob = new Blob(chunks);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              set(ref(db, `talk/${id}`), reader.result);
+            };
+            reader.readAsDataURL(blob);
+          };
+          rec.start();
+          speakBtn.textContent = "🎤 Hablando...";
+          speakBtn.onmouseup = () => {
+            rec.stop();
+            mic.getTracks().forEach(t => t.stop());
+            speakBtn.textContent = "🎤 Hablar";
+          };
         };
+        box.appendChild(speakBtn);
 
-        // Drag events
-        box.addEventListener("dragstart", (e) => {
-          box.classList.add("
+        // Reproducir audio recibido
+        const audioRef = ref(db, `audio/${id}`);
+        onValue(audioRef, snap => {
+          const val = snap.val();
+          if (val) new Audio(val).play();
+        });
+      }
+    }
+  </script>
+</body>
+</html>
