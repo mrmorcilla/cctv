@@ -164,6 +164,47 @@
       box-shadow: 0 0 25px rgba(0, 255, 0, 0.4);
     }
 
+    /* Botón cambiar cámara */
+    #switchCamBtn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 100, 255, 0.8);
+      backdrop-filter: blur(10px);
+      color: white;
+      border: 1px solid rgba(0, 150, 255, 0.5);
+      padding: 8px 16px;
+      font-size: 14px;
+      border-radius: 25px;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      display: none;
+    }
+
+    #switchCamBtn:hover {
+      background: rgba(0, 150, 255, 0.9);
+      transform: scale(1.05);
+      box-shadow: 0 0 25px rgba(0, 150, 255, 0.4);
+    }
+
+    /* Indicador de cámara activa */
+    .camera-indicator {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(10px);
+      color: white;
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-size: 12px;
+      border: 1px solid rgba(0, 255, 0, 0.3);
+      z-index: 10;
+      display: none;
+    }
+
     #mode {
       padding: 20px;
       text-align: center;
@@ -271,9 +312,11 @@
   <div id="monitor"></div>
   <button id="addCamBtn" style="display:none;">+</button>
 
-  <!-- Transmisión -->
+  <!-- Modo emisor -->
   <video id="video" autoplay playsinline muted></video>
   <canvas id="canvas" style="display:none;"></canvas>
+  <button id="switchCamBtn" style="display:none;">📷 Cambiar Cámara</button>
+  <div class="camera-indicator" id="cameraIndicator" style="display:none;"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
@@ -304,26 +347,102 @@
       modeTitle.innerText = `📤 TRANSMITIENDO - PUERTO ${port}`;
       const video = document.getElementById("video");
       const canvas = document.getElementById("canvas");
+      const switchCamBtn = document.getElementById("switchCamBtn");
+      const cameraIndicator = document.getElementById("cameraIndicator");
       const ctx = canvas.getContext("2d");
       video.style.display = "block";
+      switchCamBtn.style.display = "block";
+      cameraIndicator.style.display = "block";
 
+      let currentStream = null;
+      let devices = [];
+      let currentDeviceIndex = 0;
+
+      // Obtener dispositivos de cámara
+      async function getVideoDevices() {
+        try {
+          const deviceList = await navigator.mediaDevices.enumerateDevices();
+          devices = deviceList.filter(device => device.kind === 'videoinput');
+          return devices;
+        } catch (error) {
+          console.error("Error obteniendo dispositivos:", error);
+          return [];
+        }
+      }
+
+      // Inicializar cámara
+      async function initCamera(deviceId = null) {
+        try {
+          // Detener stream anterior si existe
+          if (currentStream) {
+            currentStream.getTracks().forEach(track => track.stop());
+          }
+
+          const constraints = {
+            video: {
+              width: { ideal: 640 },
+              height: { ideal: 480 },
+              frameRate: { ideal: 30 },
+              ...(deviceId && { deviceId: { exact: deviceId } })
+            }
+          };
+
+          currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+          video.srcObject = currentStream;
+
+          // Actualizar indicador
+          const currentDevice = devices[currentDeviceIndex];
+          cameraIndicator.textContent = `📷 ${currentDevice?.label || 'Cámara ' + (currentDeviceIndex + 1)}`;
+
+          return true;
+        } catch (error) {
+          console.error("Error accediendo a cámara:", error);
+          modeTitle.innerText = "❌ ERROR - No se puede acceder a la cámara";
+          return false;
+        }
+      }
+
+      // Cambiar cámara
+      switchCamBtn.addEventListener('click', async () => {
+        if (devices.length > 1) {
+          currentDeviceIndex = (currentDeviceIndex + 1) % devices.length;
+          const deviceId = devices[currentDeviceIndex].deviceId;
+          await initCamera(deviceId);
+          playSound(600, 0.1);
+        }
+      });
+
+      // Inicializar sistema
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = stream;
+        await getVideoDevices();
+        const initialized = await initCamera();
+        
+        if (initialized) {
+          const frameRef = ref(db, `stream/${port}`);
 
-        const frameRef = ref(db, `stream/${port}`);
-
-        setInterval(() => {
-          if (video.videoWidth === 0) return;
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const frame = canvas.toDataURL("image/jpeg", 0.5);
-          set(frameRef, frame);
-        }, 300);
+          // Transmitir frames con mayor frecuencia (100ms = 10 FPS mínimo)
+          setInterval(() => {
+            if (video.videoWidth === 0) return;
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Comprimir más agresivamente - calidad 0.3 y formato WebP si es posible
+            let frame;
+            try {
+              frame = canvas.toDataURL("image/webp", 0.3);
+            } catch (error) {
+              // Fallback a JPEG si WebP no es soportado
+              frame = canvas.toDataURL("image/jpeg", 0.3);
+            }
+            
+            set(frameRef, frame);
+          }, 100); // 100ms = 10 FPS
+        }
       } catch (error) {
-        console.error("Error accessing camera:", error);
-        modeTitle.innerText = "❌ ERROR - No se puede acceder a la cámara";
+        console.error("Error inicializando sistema:", error);
+        modeTitle.innerText = "❌ ERROR - No se puede inicializar el sistema";
       }
     }
 
@@ -351,44 +470,65 @@
           <button class="remove-btn" title="Desconectar">×</button>
         `;
 
-        // FPS y estado de conexión
+        // FPS y estado de conexión mejorado
         let lastTime = Date.now();
         let frameCount = 0;
+        let lastFrameTime = 0;
         const fpsEl = box.querySelector(`#fps-${id}`);
 
         const img = box.querySelector("img");
         const refCam = ref(db, `stream/${id}`);
         
         let isConnected = false;
+        let connectionTimeout;
+        
         onValue(refCam, snap => {
           const frame = snap.val();
           if (frame) {
-            if (!isConnected) {
-              isConnected = true;
-              fpsEl.classList.remove('loading');
-            }
-            
             const now = Date.now();
-            frameCount++;
             
-            if (now - lastTime >= 1000) {
-              const fps = frameCount / ((now - lastTime) / 1000);
-              fpsEl.textContent = `${fps.toFixed(1)} FPS`;
-              frameCount = 0;
-              lastTime = now;
+            // Verificar si es un frame nuevo
+            if (frame !== img.src) {
+              if (!isConnected) {
+                isConnected = true;
+                fpsEl.classList.remove('loading');
+                clearTimeout(connectionTimeout);
+              }
+              
+              frameCount++;
+              lastFrameTime = now;
+              
+              // Calcular FPS cada segundo
+              if (now - lastTime >= 1000) {
+                const fps = frameCount / ((now - lastTime) / 1000);
+                fpsEl.textContent = `${fps.toFixed(1)} FPS`;
+                
+                // Resetear contador
+                frameCount = 0;
+                lastTime = now;
+              }
+              
+              img.src = frame;
             }
-            
-            img.src = frame;
           }
         });
 
-        // Timeout para detectar desconexión
-        setTimeout(() => {
+        // Timeout para detectar desconexión mejorado
+        connectionTimeout = setTimeout(() => {
           if (!isConnected) {
             fpsEl.textContent = "SIN SEÑAL";
             fpsEl.classList.add('loading');
           }
-        }, 5000);
+        }, 3000);
+
+        // Monitorear desconexión en tiempo real
+        setInterval(() => {
+          if (isConnected && Date.now() - lastFrameTime > 5000) {
+            fpsEl.textContent = "DESCONECTADO";
+            fpsEl.classList.add('loading');
+            isConnected = false;
+          }
+        }, 1000);
 
         // Eliminar cámara
         box.querySelector(".remove-btn").onclick = (e) => {
@@ -467,26 +607,30 @@
       }
     }
 
-    // Efectos de sonido (opcional)
+    // Efectos de sonido mejorados
     function playSound(frequency, duration) {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.value = frequency;
-      oscillator.type = 'sine';
-      
-      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + duration);
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = frequency;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+      } catch (error) {
+        // Silenciar errores de audio
+      }
     }
 
-    // Sonido al agregar cámara
+    // Sonidos de interacción
     document.addEventListener('click', (e) => {
       if (e.target.id === 'addCamBtn') {
         playSound(800, 0.1);
