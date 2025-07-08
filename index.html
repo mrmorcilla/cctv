@@ -2,113 +2,132 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>PortView CCTV</title>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+  <title>PortView CCTV - Manual</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    * {
-      box-sizing: border-box;
+    body {
+      background: linear-gradient(135deg, #0a0a0a, #0f1f0f);
+      font-family: 'Courier New', monospace;
+      color: #00ff88;
       margin: 0;
       padding: 0;
     }
 
-    body {
-      background-color: #0d0f0d;
-      color: #bfffbf;
-      font-family: 'Orbitron', sans-serif;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-
     header {
-      background-color: #101e10;
+      background-color: #0d1d0d;
       padding: 20px;
       text-align: center;
       border-bottom: 2px solid #00ff88;
-      box-shadow: 0 0 20px #00ff88;
+      box-shadow: 0 0 10px #00ff88;
     }
 
     header h1 {
+      font-size: 2.2em;
       color: #00ff88;
-      font-size: 2.5rem;
-      text-shadow: 0 0 10px #00ff88;
+      margin-bottom: 10px;
     }
 
     main {
-      flex: 1;
-      padding: 30px;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 20px;
+      padding: 40px;
+      max-width: 900px;
+      margin: auto;
     }
 
-    .camera-feed {
-      background: #111;
-      border: 2px solid #00ff88;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 0 10px #00ff88aa;
-      width: 480px;
-      height: 270px;
-      position: relative;
+    section {
+      margin-bottom: 30px;
     }
 
-    .camera-feed iframe, .camera-feed video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    h2 {
+      color: #44ff88;
+      border-left: 4px solid #00ff88;
+      padding-left: 10px;
+      margin-bottom: 10px;
     }
 
-    .camera-label {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      background: #00ff8844;
-      color: #000;
-      padding: 5px 10px;
-      font-size: 0.9rem;
-      font-weight: bold;
+    code {
+      background: #002a1a;
+      padding: 4px 8px;
+      border-radius: 5px;
+      color: #88ffcc;
+      display: inline-block;
+      margin: 5px 0;
+    }
+
+    .example {
+      background: #001f15;
+      padding: 15px;
+      border-left: 4px solid #00ff88;
+      margin-top: 10px;
+      border-radius: 5px;
     }
 
     footer {
-      background-color: #101e10;
+      background-color: #0d1d0d;
       text-align: center;
       padding: 15px;
-      color: #55ff55;
-      border-top: 1px solid #00ff88;
+      color: #44ff88;
       font-size: 0.9rem;
+      border-top: 1px solid #00ff88;
     }
 
-    @media (max-width: 500px) {
-      .camera-feed {
-        width: 100%;
-      }
+    a {
+      color: #88ff88;
+      text-decoration: none;
     }
   </style>
 </head>
 <body>
   <header>
     <h1>PortView CCTV</h1>
-    <p>Monitoreo en tiempo real desde cualquier lugar</p>
+    <p>Sistema de vigilancia en tiempo real</p>
   </header>
 
   <main>
-    <!-- Ejemplo de cámaras -->
-    <div class="camera-feed">
-      <iframe src="TU_LINK_CAMARA_1" frameborder="0" allowfullscreen></iframe>
-      <div class="camera-label">Entrada Principal</div>
-    </div>
-    <div class="camera-feed">
-      <iframe src="TU_LINK_CAMARA_2" frameborder="0" allowfullscreen></iframe>
-      <div class="camera-label">Depósito</div>
-    </div>
-    <!-- Agrega más cámaras aquí -->
+    <section>
+      <h2>¿Cómo usar esta página?</h2>
+      <p>Este sistema permite visualizar cámaras en tiempo real usando parámetros en la URL.</p>
+    </section>
+
+    <section>
+      <h2>Parámetros disponibles</h2>
+      <ul>
+        <li><code>?port=PUERTO</code> – Especifica la cámara según su puerto (ej. <code>123</code>).</li>
+        <li><code>&rec</code> – Si se incluye, la cámara activa grabación.</li>
+        <li><code>?view</code> – Modo multivista: muestra todas las cámaras conectadas.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Ejemplos útiles</h2>
+
+      <div class="example">
+        <strong>1. Ver una sola cámara sin grabar:</strong><br>
+        <code>https://tupagina.com/?port=123</code>
+      </div>
+
+      <div class="example">
+        <strong>2. Ver una cámara y grabar:</strong><br>
+        <code>https://tupagina.com/?port=456&rec</code>
+      </div>
+
+      <div class="example">
+        <strong>3. Ver múltiples cámaras al mismo tiempo:</strong><br>
+        <code>https://tupagina.com/?view</code>
+      </div>
+    </section>
+
+    <section>
+      <h2>Notas técnicas</h2>
+      <ul>
+        <li>Los puertos deben estar habilitados y vinculados a cámaras previamente.</li>
+        <li>La opción <code>&rec</code> activa la grabación solo si el backend lo permite.</li>
+        <li><code>?view</code> ignora <code>?port</code> y muestra todas las disponibles.</li>
+      </ul>
+    </section>
   </main>
 
   <footer>
-    &copy; 2025 PortView CCTV | Monitoreo Privado Seguro
+    &copy; 2025 PortView CCTV - Sistema privado de vigilancia
   </footer>
 </body>
 </html>
